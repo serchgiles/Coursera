@@ -11,5 +11,5 @@ The file [`resulting_data.txt`](https://github.com/serchgiles/Coursera/blob/mast
         - `SITTING`
         - `STANDING`
         - `LAYING`
-- The  rest of the variables is the average of the observations of the meand and standard desviation features-type (see [`features.txt`](https://github.com/serchgiles/Coursera/blob/master/Getting%20and%20Cleaning%20Data/Project/features.txt))  
+- The  rest of the variables is the average of the observations of the meand and standard deviation features-type (see [`features.txt`](https://github.com/serchgiles/Coursera/blob/master/Getting%20and%20Cleaning%20Data/Project/features.txt))  
 aggregated by `subID` and `actType`.
