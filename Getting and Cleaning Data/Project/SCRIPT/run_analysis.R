@@ -77,5 +77,4 @@ secondTidyData <- melt(secondData, id.vars = c(1:3))
 dim(secondTidyData)
 
 View(secondTidyData)
-
 write.table(secondTidyData, "SCRIPT/resulting_data.txt", row.names = F)
