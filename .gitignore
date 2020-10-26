@@ -4,3 +4,7 @@
 .Ruserdata
 .Rproj
 *.csv
+*.txt
+*.xlsx
+*.rar
+*.pdf
