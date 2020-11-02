@@ -1,0 +1,69 @@
+---
+title: "Spam Analysis"
+author: "Sergio Iván Arroyo Giles"
+date: "30/10/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Can we make an automatized a classification of emails based on quantitative characteristics?
+
+
+```{r loadData}
+# Example of making predictive analysis
+
+# install.packages("kernlab")
+library(kernlab)
+data(spam)
+
+str(spam)
+summary(spam)
+```
+
+### Divide our data randomly in two sets (train and test)
+
+```{r splitData, echo=FALSE}
+# Coin Flip randomly (Y/N)
+trainIndicator <- as.logical(rbinom(4601, size = 1, 0.5))
+
+table(trainIndicator)
+
+trainSpam <- spam[trainIndicator,]
+
+testSpam <- spam[!trainIndicator,]
+```
+
+### What do we have in our sets of data?
+
+```{r summary}
+# What are the headers?
+names(trainSpam)
+# Quick view of the first observations
+head(trainSpam)
+# How many emails are spam?
+table(trainSpam$type)
+
+# Create boxplots
+plot(log10(trainSpam$capitalAve + 1) ~ trainSpam$type)
+
+#Check behaviour based on the other observations
+plot(log10(trainSpam[,1:4] + 1))
+```
+
+### More sophisticated statiscal predictive model
+
+```{r model}
+library(dplyr)
+
+trainSpam$catType <- as.numeric(trainSpam$type) - 1
+
+costFunction <- function(x,y) sum(x != (y>0.5))
+
+cvError <- rep(NA,55)
+
+
+```
+
