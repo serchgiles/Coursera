@@ -1,0 +1,147 @@
+---
+title: "Course Project 1"
+author: "Sergio Iván Arroyo Giles"
+date: "2/11/2020"
+output: 
+        html_document:
+                keep_md: TRUE
+---
+
+## Introduction 
+
+The purpose of this report is to give a brief description of the data collected by some monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
+
+
+## Preliminaries 
+
+We'll be using the [`tidyverse`](https://tidyverse.tidyverse.org/) package that loads `ggplot2` and `dplyr` to manage the plots and data manipulation. Also, we won't show any `message` or `warnings` of any output.
+
+```{r loadLibraries, warning=FALSE, echo=TRUE, message=FALSE}
+knitr::opts_chunk$set(warning=F, message=F)
+library(tidyverse)
+```
+
+## Loading and Formatting the data
+
+By quick review of the raw data (csv file), we notice that the class of the columns are well formatted. So, we anticipate the class of the columns
+
+```{r loadData}
+colClasses <- c("numeric", "Date", "numeric")
+activityData <- read.csv("activity.csv", colClasses = colClasses)
+head(activityData)
+```
+
+Also, for each day we create `factor` variable to identify if the day of which the numbers of steps are counted correspond to a weekday or to the weekend.
+
+```{r weekdays}
+activityData <- activityData %>% 
+        mutate(day = ifelse(weekdays(date) %in% c("sábado", "domingo"),
+                            "weekend", "weekday"))
+activityData$day <- factor(activityData$day)
+summary(activityData)
+```
+
+### Mean total number of steps per day
+
+In this step we ignore the `NA` values.
+
+```{r question1}
+activityData %>% 
+        group_by(date) %>% 
+        summarise(totalSteps = sum(steps,na.rm = T)) %>%
+        ggplot(aes(x = totalSteps)) +
+        geom_histogram()
+```
+
+Here is the mean and median value of the total number of steps taken each day.
+
+```{r meanAndMedian}
+meanValue <- mean(with(activityData, tapply(steps, date, sum, na.rm = T)))
+medianValue <- median(with(activityData, tapply(steps, date, sum, na.rm = T)))
+c(meanValue, medianValue)
+```
+
+### Timeserie of the average of steps along days
+
+The following displays a time serie over the intervals and shows the average of steps alongs the days.
+
+```{r timeserie}
+auxTable <- activityData %>% 
+        group_by(interval) %>%
+        summarise(averageSteps = mean(steps, na.rm = T))
+
+maxInterval <- auxTable$interval[which(auxTable$averageSteps == max(auxTable$averageSteps))]
+
+auxTable %>%
+        ggplot(aes(x=interval, y=averageSteps)) +
+        geom_line() + 
+        geom_vline(xintercept = maxInterval, color = "red")
+```
+
+In the interval `r maxInterval` we reach the maximum of the time serie. This point is marked with red in the previous plot.
+
+### What about missing values?
+
+Clearly, the `steps` columns have some `NA` values.
+
+```{r summaries}
+summary(activityData)
+```
+
+So, we inspect how the `NA` are distributed per day (`date` column).
+
+```{r naDistribution, message=F}
+activityData %>% 
+        group_by(date) %>% 
+        summarise(naCount = sum(is.na(steps))) %>%
+        filter(naCount > 0)
+```
+
+To avoid bias about the missing observations, we fill those values with the median of the observations per interval along the days. 
+
+```{r naTreatment}
+activityData2 <- activityData %>% 
+        group_by(interval) %>% 
+        mutate(newSteps = ifelse(is.na(steps), median(steps, na.rm = T), steps))
+
+summary(activityData2)
+```
+
+What kind of changes we obtained?
+
+```{r histogramUpdate}
+activityData2 %>% 
+        group_by(date) %>% 
+        summarise(totalSteps = sum(newSteps)) %>%
+        ggplot(aes(x = totalSteps)) +
+        geom_histogram()
+```
+
+Here is the mean and median value of the total number of steps taken each day with the `NA` treatment.
+
+
+```{r updateM&M}
+meanValue2 <- mean(with(activityData2, tapply(newSteps, date, sum)))
+medianValue2 <- median(with(activityData2, tapply(newSteps, date, sum)))
+c(meanValue2, medianValue2)
+```
+
+### Timeserie of the average of steps along weekdays and weekend
+
+The following displays a time serie over the intervals and shows the average of steps alongs the days.
+
+```{r timeserie2}
+auxTable <- activityData2 %>% 
+        group_by(interval, day) %>%
+        summarise(averageSteps = mean(newSteps, na.rm = T))
+
+maxInterval <- auxTable$interval[which(auxTable$averageSteps == max(auxTable$averageSteps))]
+
+auxTable %>%
+        ggplot(aes(x=interval, y=averageSteps)) +
+        geom_line() + 
+        facet_grid(.~day)
+```
+
+In the interval `r maxInterval` we reach the maximum of the time serie. This point is marked with red in the previous plot.
+
