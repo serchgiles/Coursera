@@ -407,22 +407,14 @@ head(activityData)</code></pre>
                             &quot;weekend&quot;, &quot;weekday&quot;))
 activityData$day &lt;- factor(activityData$day)
 summary(activityData)</code></pre>
-<pre><code>##      steps             date               interval     
-##  Min.   :  0.00   Min.   :2012-10-01   Min.   :   0.0  
-##  1st Qu.:  0.00   1st Qu.:2012-10-16   1st Qu.: 588.8  
-##  Median :  0.00   Median :2012-10-31   Median :1177.5  
-##  Mean   : 37.38   Mean   :2012-10-31   Mean   :1177.5  
-##  3rd Qu.: 12.00   3rd Qu.:2012-11-15   3rd Qu.:1766.2  
-##  Max.   :806.00   Max.   :2012-11-30   Max.   :2355.0  
-##  NA&#39;s   :2304                                          
-##       day       
-##  weekday:12960  
-##  weekend: 4608  
-##                 
-##                 
-##                 
-##                 
-## </code></pre>
+<pre><code>##      steps             date               interval           day       
+##  Min.   :  0.00   Min.   :2012-10-01   Min.   :   0.0   weekday:12960  
+##  1st Qu.:  0.00   1st Qu.:2012-10-16   1st Qu.: 588.8   weekend: 4608  
+##  Median :  0.00   Median :2012-10-31   Median :1177.5                  
+##  Mean   : 37.38   Mean   :2012-10-31   Mean   :1177.5                  
+##  3rd Qu.: 12.00   3rd Qu.:2012-11-15   3rd Qu.:1766.2                  
+##  Max.   :806.00   Max.   :2012-11-30   Max.   :2355.0                  
+##  NA&#39;s   :2304</code></pre>
 <div id="mean-total-number-of-steps-per-day" class="section level3">
 <h3>Mean total number of steps per day</h3>
 <p>In this step we ignore the <code>NA</code> values.</p>
@@ -458,22 +450,14 @@ auxTable %&gt;%
 <h3>What about missing values?</h3>
 <p>Clearly, the <code>steps</code> columns have some <code>NA</code> values.</p>
 <pre class="r"><code>summary(activityData)</code></pre>
-<pre><code>##      steps             date               interval     
-##  Min.   :  0.00   Min.   :2012-10-01   Min.   :   0.0  
-##  1st Qu.:  0.00   1st Qu.:2012-10-16   1st Qu.: 588.8  
-##  Median :  0.00   Median :2012-10-31   Median :1177.5  
-##  Mean   : 37.38   Mean   :2012-10-31   Mean   :1177.5  
-##  3rd Qu.: 12.00   3rd Qu.:2012-11-15   3rd Qu.:1766.2  
-##  Max.   :806.00   Max.   :2012-11-30   Max.   :2355.0  
-##  NA&#39;s   :2304                                          
-##       day       
-##  weekday:12960  
-##  weekend: 4608  
-##                 
-##                 
-##                 
-##                 
-## </code></pre>
+<pre><code>##      steps             date               interval           day       
+##  Min.   :  0.00   Min.   :2012-10-01   Min.   :   0.0   weekday:12960  
+##  1st Qu.:  0.00   1st Qu.:2012-10-16   1st Qu.: 588.8   weekend: 4608  
+##  Median :  0.00   Median :2012-10-31   Median :1177.5                  
+##  Mean   : 37.38   Mean   :2012-10-31   Mean   :1177.5                  
+##  3rd Qu.: 12.00   3rd Qu.:2012-11-15   3rd Qu.:1766.2                  
+##  Max.   :806.00   Max.   :2012-11-30   Max.   :2355.0                  
+##  NA&#39;s   :2304</code></pre>
 <p>So, we inspect how the <code>NA</code> are distributed per day (<code>date</code> column).</p>
 <pre class="r"><code>activityData %&gt;% 
         group_by(date) %&gt;% 
@@ -496,21 +480,21 @@ auxTable %&gt;%
         mutate(newSteps = ifelse(is.na(steps), median(steps, na.rm = T), steps))
 
 summary(activityData2)</code></pre>
-<pre><code>##      steps             date               interval     
-##  Min.   :  0.00   Min.   :2012-10-01   Min.   :   0.0  
-##  1st Qu.:  0.00   1st Qu.:2012-10-16   1st Qu.: 588.8  
-##  Median :  0.00   Median :2012-10-31   Median :1177.5  
-##  Mean   : 37.38   Mean   :2012-10-31   Mean   :1177.5  
-##  3rd Qu.: 12.00   3rd Qu.:2012-11-15   3rd Qu.:1766.2  
-##  Max.   :806.00   Max.   :2012-11-30   Max.   :2355.0  
-##  NA&#39;s   :2304                                          
-##       day           newSteps  
-##  weekday:12960   Min.   :  0  
-##  weekend: 4608   1st Qu.:  0  
-##                  Median :  0  
-##                  Mean   : 33  
-##                  3rd Qu.:  8  
-##                  Max.   :806  
+<pre><code>##      steps             date               interval           day       
+##  Min.   :  0.00   Min.   :2012-10-01   Min.   :   0.0   weekday:12960  
+##  1st Qu.:  0.00   1st Qu.:2012-10-16   1st Qu.: 588.8   weekend: 4608  
+##  Median :  0.00   Median :2012-10-31   Median :1177.5                  
+##  Mean   : 37.38   Mean   :2012-10-31   Mean   :1177.5                  
+##  3rd Qu.: 12.00   3rd Qu.:2012-11-15   3rd Qu.:1766.2                  
+##  Max.   :806.00   Max.   :2012-11-30   Max.   :2355.0                  
+##  NA&#39;s   :2304                                                          
+##     newSteps  
+##  Min.   :  0  
+##  1st Qu.:  0  
+##  Median :  0  
+##  Mean   : 33  
+##  3rd Qu.:  8  
+##  Max.   :806  
 ## </code></pre>
 <p>What kind of changes we obtained?</p>
 <pre class="r"><code>activityData2 %&gt;% 

@@ -1,0 +1,158 @@
+---
+title: The impact of storms on human health and the economy
+date: November 4, 2020
+author: Sergio Arroyo
+---
+
+# Introduction
+
+Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.
+
+The purpose of this report is to present somo basic plots about the given information by the U.S. National Oceanic and Atmospheric Administration's (NOAA) in his storm data base. More information can be founded in their [page](https://www.noaa.gov/).
+
+# Preliminaries
+
+To avoid the presence of some warnings and messages of the code chunk and save some machine time, we set the following global options.
+
+```{r globalOpts}
+knitr::opts_chunk$set(warning = F, message = F, cache = T)
+```
+
+## Loading data and formatting
+
+First of all, we load the `tidyverse` library to manage dataframes and plots. Also, we set some global options for this report, i.e. we won't show any warning and message produced by the code. 
+
+```{r preliminaries}
+library(tidyverse)
+library(lubridate)
+library(gridExtra)
+```
+
+We can download the database from this [link](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2). Now, we show the dimensions of the data set and a quick view of the first 3 observations.
+
+```{r loading data}
+fileURL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+download.file(fileURL, destfile = "StormData.csv.bz2")
+
+stormData <- read.csv("StormData.csv.bz2", header = T, stringsAsFactors = F)
+dim(stormData)
+head(stormData, 3)
+```
+
+Also, we get the structure of this data set.
+
+```{r structure}
+str(stormData)
+```
+
+We modify the `BGN_DATE` and `END_DATE`as the proper format.
+
+```{r formatDates}
+stormData$BGN_DATE <- as.Date(stormData$BGN_DATE, format = "%m/%d/%Y")
+stormData$END_DATE <- as.Date(stormData$END_DATE, format = "%m/%d/%Y")
+```
+
+## Subsetting data
+
+According to the [data base details](https://www.ncdc.noaa.gov/stormevents/details.jsp) provided by NOAA, before 1996 only Tornado, Thunderstorm Wind and Hail were reported. Therefore, we only consider observations reported after 1996 (including that year). Also, since this report wants to describe the disasters and the effect of some types of events, we only consider those events which had some economic damages.
+
+```{r subset}
+stormData2 <- stormData %>% filter(year(BGN_DATE)>=1996) %>%
+        mutate(ecoImpact = (PROPDMG > 0 | CROPDMG > 0 | FATALITIES > 0 | INJURIES > 0))
+```
+
+# Results
+
+## Human health impact
+
+Let's see a quick review of the presence of all the event type. Since we have more than `r length(unique(stormData$EVTYPE))` different observations, we just show those events of which frequency is iver the mean of the frequency of every event. The right plot shows all the events and in the left we are showing only the events which has economic impact.
+
+```{r barplot, fig.width=10}
+
+p <- stormData2 %>% group_by(EVTYPE) %>% summarise(n=n(), damage=sum(FATALITIES, INJURIES)) %>% slice_max(n, n=10) %>% ggplot() + geom_bar(aes(x=reorder(EVTYPE, -n), y=n, fill=damage), stat = "identity") + coord_flip() + theme(legend.position = "none") + scale_fill_gradient(low = "#add8e6", high = "#f08080")
+q <- stormData2 %>% filter(ecoImpact) %>% group_by(EVTYPE) %>% summarise(n=n(), damage=sum(FATALITIES, INJURIES)) %>% slice_max(n, n=10) %>% ggplot() + geom_bar(aes(x=reorder(EVTYPE, -n), y=n, fill=damage), stat = "identity") + coord_flip() + scale_fill_gradient(name = "Human Damage", low = "#add8e6", high = "#f08080")
+grid.arrange(p, q, ncol = 2)
+```
+
+Although hail was the type of event with the highest number of occurrences, thunderstorm winds (`TSTM WIND`) have been the most frequent event with economic impact. On the other hand, besides `HAIL` had the highest frequency it seems to be the fourth most frequent event with economic impact. However, in both plots is clear that `TORNADOS` were the most harmful for the human beings.
+
+```{r topHumanDMG}
+stormData2 %>% filter(ecoImpact) %>% group_by(EVTYPE) %>% summarise(n=n(), damage=sum(FATALITIES, INJURIES))
+```
+
+## Economic impact 
+
+To see the number of events that have had an economic impact over the years, we show the following time series where the most. 
+
+```{r impactOverYears, fig.width=10}
+p <- stormData2 %>% filter(ecoImpact) %>% group_by(BGN_DATE) %>% summarise(n=n()) %>% ggplot() + geom_line(aes(x=BGN_DATE, y=n))+ scale_color_gradient()
+q <- stormData2 %>% filter(ecoImpact) %>% group_by(BGN_DATE) %>% summarise(n=n()) %>% ggplot() + geom_bar(aes(x=month(BGN_DATE), y=n, fill = year(BGN_DATE)), stat = "identity")+ scale_color_gradient() + scale_x_continuous(breaks = c(1:12), name = "Month") + theme(legend.position = "none")
+grid.arrange(p, q, ncol = 2)
+```
+
+From the left plot, we can observe some seasonality over the number of events. But, from the right plot we observe that the frequency of the events get higher when in the middle of the year (May, June and July).
+
+To show the real economic impact we must format with the exponents values of the `CROPDMGEXP` and `PROPDMGEXP` columns.
+
+```{r exponents}
+stormData2$PROPDMGEXP %>% unique()
+stormData2$CROPDMGEXP %>% unique()
+```
+
+We interpretate those multipliers as follows:
+
+- `[blank]` or `0` -> $\times 1$
+- `K` -> $\times 10^3$
+- `M` -> $\times 10^6$
+- `B` -> $\times 10^9$
+
+```{r ecoImpact}
+multiplier <- function(x) {
+        res <- numeric(length(x))
+        res[x=="K"] <- 1e3
+        res[x=="M"] <- 1e6
+        res[x=="B"] <- 1e9
+        res[x==""] <- 1
+        return(res)
+}
+
+topEconomicImpact <- stormData2 %>% 
+        mutate(totalPropDMG = PROPDMG*multiplier(PROPDMGEXP), totalCropDMG = CROPDMG*multiplier(CROPDMGEXP)) %>% 
+        filter(ecoImpact) %>% 
+        group_by(EVTYPE) %>% 
+        summarise(totalDMG = sum(totalPropDMG + totalCropDMG)) %>%
+        ungroup() %>% 
+        slice_max(totalDMG, n=10)
+
+topEconomicImpact %>% 
+        ggplot() + 
+        geom_bar(aes(x=reorder(EVTYPE, -totalDMG), y=totalDMG), stat = "identity") + 
+        coord_flip()
+
+topEconomicImpact %>% 
+        mutate(DAMAGE.Economic = scales::dollar(totalDMG)) %>%
+        select(EVTYPE, DAMAGE.Economic) %>% 
+        print()
+
+```
+
+Finally, we can observe that `FLOOD` is the eventy type that leaves more economic damage and also are in the most frequent events with considerably human damage.
+
+# Conclusions
+
+To conclude this report, we left the following scatter plot where is possible to observe the economic and human damage together.
+
+```{r scatter}
+stormData2 %>%
+        filter(ecoImpact) %>% 
+        mutate(totalPropDMG = PROPDMG*multiplier(PROPDMGEXP), totalCropDMG = CROPDMG*multiplier(CROPDMGEXP)) %>% 
+        group_by(EVTYPE) %>% 
+        summarise(totalEcoDMG = sum(totalPropDMG + totalCropDMG), 
+                  totalHumDMG = sum(FATALITIES + INJURIES), 
+                  freq = n()) %>%
+        ggplot() +
+        geom_point(aes(x=log10(totalEcoDMG), y=log10(totalHumDMG), color=freq), alpha = 0.3, size = 2)
+```
+
+As an alternative and future work, we can note that there might be a linear observations of those events which human damage and economic damage are not zero. 
+

@@ -1,0 +1,10 @@
+name: Publish Document
+title:
+username:
+account: rpubs
+server: rpubs.com
+hostUrl: rpubs.com
+appId: https://api.rpubs.com/api/v1/document/686125/3739e2b0015b4a479a45bd76816edc07
+bundleId: https://api.rpubs.com/api/v1/document/686125/3739e2b0015b4a479a45bd76816edc07
+url: http://rpubs.com/serchgiles/686125
+when: 1604518054.52164

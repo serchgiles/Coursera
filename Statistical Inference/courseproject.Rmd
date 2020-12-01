@@ -1,0 +1,174 @@
+---
+title: "Course Project"
+author: "Sergio Iván Arroyo Giles"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T, message=F, warning=F)
+```
+
+\section{Part 1: Simulation Exercise}
+
+\subsection{Overview}
+Recall what the \textbf{Central Limit Theorem (CLT)}  states:
+
+Let $\{X_1,X_2,\ldots,X_n\}$ be a random sample of size $n$- that is, a sequence of independent and identically distributed random variables drawn from a distribution with mean $\mu_X$ and variance $\sigma_X^2$. If you take sufficiently large random samples from the population with replacement, then the distribution of the sample means will be approximately normally distributed.  mathematical terms, for $n$ (size of the sample) sufficiently large we have
+
+$$\bar{X}= \frac{1}{n}\sum_{i=1}^n X_i \sim \mathcal{N}\left(\mu_X, \sigma_X^2/n\right).$$
+
+Here we intend to show how the sample mean of exponential observations satisfies the CLT. That is, how the distribution of sample mean have a very \textit{gaussian} style via simulation of $1,000$ samples of size $40$.
+
+\subsection{Simulations}
+
+We denote and use the following variables:
+
+- `n`: Number of simulations to be run
+- `S`: Size of each sample
+- `lambda`: The rate parameter of our exponential distribution
+
+```{r}
+#Parameters of the simulation
+n <- 1000
+S <- 40
+lambda <- 0.2
+```
+
+Now, we create a matrix of size `n`$\times$`S` where each of the columns are a simulation of size `r S` and then we compute the mean of each of these columns.
+
+```{r}
+#Simulations
+dataMatrix <- matrix(rexp(S*n, lambda), nrow = S)
+sampleMeans <- apply(dataMatrix, 2, mean)
+```
+
+\subsection{Sample Mean versus Theoretical Mean}
+Therefore, if we perform the sample mean of our observations we get an approximation of the population mean.
+```{r}
+theoretical.mean <- 1/lambda
+sample.mean <- mean(sampleMeans)
+cbind(theoretical.mean, sample.mean)
+```
+
+\subsection{Sample Variance versus Theoretical Variance}
+Also, the same relationship works with the sample and population variance
+
+```{r}
+theoretical.variance <- ((1/lambda)^2)
+sample.variance <- var(sampleMeans)*S
+cbind(theoretical.variance, sample.variance)
+```
+
+\subsection{Distribution}
+
+To show the normal distribution, we create the probability histogram of the observations and the theoretical distribution (in red). Clearly, the sample mean (marked in blue) is the central point of our distribution. 
+
+```{r, fig.height=5, fig.width= 10, fig.cap="Both distributions of the sample mean and populations, respectively."}
+#Plotting the histogram
+par(mfrow = c(1,2), mar =c(4.1,3.1,3.1,1.1))
+hist(sampleMeans, 30, freq = F, main = "Sample Distribution")
+abline(v = 1/0.2, lwd = 3, col = 'blue') #Theoretical Mean
+
+#Theoretical Distribution
+pp <- rnorm(2500, mean = 1/lambda, sd = 1/(lambda*sqrt(S)))
+lines(sort(pp), dnorm(sort(pp), mean = 1/lambda, sd = 1/(lambda*sqrt(S))), col = "red", lwd = 2)
+
+#Exponential Distribution
+xx <- sort(rexp(2500, rate = lambda))
+plot(xx, dexp(xx, rate = lambda), type = "l", main = "Exponential Distribution", xlab = "", lwd = 3)
+```
+
+\section{Part 2: Tooth Growth. Basic Inferential Data Analysis}
+
+We pretend to perform some basic inferential data analysis on the `ToothGrowth` dataset.
+```{r}
+data(ToothGrowth)
+```
+
+From the documentation obtained by `help(ToothGrowth)`:
+
+- The response is the length of odontoblasts (cells responsible for tooth growth) in $60$ guinea pigs. Each animal received one of three dose levels of vitamin C (0.5, 1, and 2 mg/day) by one of two delivery methods, orange juice or ascorbic acid (a form of vitamin C and coded as VC).
+
+\subsection{Data Exploration}
+
+First we obtain a few statistics of our dataset:
+
+```{r}
+library(ggplot2); library(tidyverse)
+summary(ToothGrowth)
+str(ToothGrowth)
+ToothGrowth %>% group_by(supp, dose) %>% summarise(lenMean = mean(len), count = n())
+```
+
+\subsection{Hypothesis Testing}
+
+We are going to perform three analysis comparing the means between the two delivery methods: Oranje Juice (`OJ`) and Ascorbic Acid, i.e, vitamin C (`VC`), via hypothesis Testing:
+
+- without any distinction between doses,
+- grouping by dose (3 tests, one for each dose).
+
+Since we don't have enough information about the data, we can perform \textit{t-tests} for this purpose. Considerer the hypothesis test
+$$H_0: \mu_{_{OJ}} = \mu_{_{VC}} \quad \text{vs}\quad H_a: \mu_{_{OJ}} \neq \mu_{_{VC}}$$
+where $\mu_{_{OJ}}$ and $\mu_{_{VC}}$ are the means of the population of the Oranje Juice and Vitamin C methods, respectively.
+
+```{r, fig.height=4, fig.width=6, fig.cap="Violin plots for each dosage and without grouping by that."}
+aux <- ToothGrowth %>% mutate(dose = "ALL")
+ToothGrowth %>% rbind(aux) %>%
+        ggplot(aes(x=supp, y = len, fill = supp)) +
+        geom_violin(size=1.5) +
+        facet_wrap(~dose)
+```
+
+\subsubsection{Regardless of the dosage}
+First, without taking in consideration the dosage.
+
+```{r}
+t.test(len ~ supp, paired = F, data = ToothGrowth)
+```
+
+Since the confidence interval contains the cero and its $p$-value is `r t.test(len ~ supp, paired = F, data = ToothGrowth)$p.value` $>0.05$ we failed to reject the null hypothesis. In other words, there is no significance evidence to ensure mean distinction.
+
+\subsubsection{Low-dosage}
+We now filter for the low-dosage.
+
+```{r}
+lowdosage <- ToothGrowth %>% filter(dose == 0.5)
+t.test(len ~ supp, paired = F, data = lowdosage)
+```
+
+\subsubsection{Mid-dosage}
+Then, we filter for the mid-dosage.
+
+```{r}
+middosage <- ToothGrowth %>% filter(dose == 1)
+t.test(len ~ supp, paired = F, data = middosage)
+```
+
+\subsubsection{High-dosage}
+Finall, we filter for the high-dosage.
+
+```{r}
+highdosage <- ToothGrowth %>% filter(dose == 2)
+t.test(len ~ supp, paired = F, data = highdosage)
+```
+
+\subsection{Conclusions}
+
+In the next table, we present all the $p-$values of each hypothesis test
+
+```{r, echo=F}
+all.dose <- t.test(len ~ supp, paired = F, data = ToothGrowth)$p.value
+low.dose <- t.test(len ~ supp, paired = F, data = lowdosage)$p.value
+mid.dose <- t.test(len ~ supp, paired = F, data = middosage)$p.value
+high.dose <- t.test(len ~ supp, paired = F, data = highdosage)$p.value
+cbind(all.dose, low.dose, mid.dose, high.dose)
+```
+
+From the table, we can conclude the following
+
+- There is no significance evidence to consider the distinct means between the lenght of the cells grouping only by the methods.
+- The means between the low (`0.5`) and mid (`1`) dosages are significant distinct.
+- In the case of high dosages, we failed to reject the hypothesis of equally means because our $p-$value is nearly $1$.
+
+
+

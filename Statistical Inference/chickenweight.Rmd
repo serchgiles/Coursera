@@ -1,0 +1,88 @@
+---
+title: Chicken Weight
+---
+
+### Loading data and libraries
+
+We load our data and take a quick view of the raw data.
+
+```{r load data, message=FALSE, warning=FALSE}
+library(datasets); library(reshape2); library(tidyverse)
+
+data("ChickWeight")
+
+head(ChickWeight)
+str(ChickWeight)
+```
+
+### Formating the data set
+
+First, we note that our data is in long format, so we use `reshape2::dcast` for
+taking it to tidy format. Also, change the names given by the last function.
+
+```{r formating}
+wideCW <- ChickWeight %>% dcast(Diet + Chick ~ Time, value.var = "weight")
+names(wideCW)[-c(1,2)] <- paste("time_", names(wideCW)[-c(1,2)], sep = "0")
+
+head(wideCW, 3)
+```
+
+Since we are interested in the effectivity of the Diet we add a variable `gain` that measures the difference between the initial weight and the final weigth.
+
+```{r tranform}
+wideCW <- wideCW %>% mutate(gain = time_021 - time_00)
+```
+
+### Plots
+
+```{r}
+spag <- ChickWeight %>%
+        ggplot(aes(x=Time, y = weight, group = Chick, color = Diet)) + 
+        geom_line() +
+        facet_grid(.~Diet) + 
+        stat_summary(aes(group = Diet), geom = "line", 
+                     fun = mean, color = "black", size=1.5)
+
+viol <- wideCW %>%
+        ggplot(aes(x=Diet, y=gain, fill=Diet)) +
+        geom_violin(size = 1.5)
+
+gridExtra::grid.arrange(spag, viol, nrow = 2)
+```
+
+From this we made can infer that variance between Diet 1 and 4 is equal. Then, we apply a $t$-confidence interval for `Diet 1` and `4`. But first take a look of the help information for the `t.test` command. 
+
+```{r CI, fig.height=3}
+wideCW_14 <- wideCW %>% filter(Diet %in% c(1,4))
+
+CI <- rbind(
+        t.test(gain ~ Diet, paired=F, var.equal=T, data = wideCW_14)$conf,
+        t.test(gain ~ Diet, paired=F, var.equal=F, data = wideCW_14)$conf
+        ) %>% as.data.frame()
+
+CI <- CI %>% cbind(data.frame("var.equal" = c(T,F)))
+
+CI %>% ggplot() +
+        geom_errorbar(aes(y = var.equal, xmin = V1, xmax = V2, 
+                          color = var.equal), size = 2) +
+        geom_text(aes(label=round(V1,2), x=V1, y = var.equal), angle = 90, 
+                  position = position_stack(-0.03)) +
+        geom_text(aes(label=round(V2,2), x=V2, y = var.equal), angle = 90, 
+                  position = position_stack(0.15))
+```
+
+### $t$ Test
+
+Now, we our going to check for a $t$ test. 
+
+
+```{r}
+t.test(gain ~ Diet, paired = F, var.equal = T, data = wideCW_14)
+```
+
+In this case, we are performming the following hypothesis test:
+$$H_0: \mu_1-\mu_4=0\qquad \text{vs}\qquad  H_a:\mu_1-\mu_4\neq0$$
+where $\mu_i$ represents the gain mean of the respective Diet $i$.
+
+In this case we **reject $H_0$**, because $0$ doesn't belongs to the resulting confidence interval. Also, because our statistic `t= -2.7252` is in the rejection area, that is:
+$$|t|=2.7252>2.068658=t_{(0.975)}^{(n_1+n_4-2)}$$
